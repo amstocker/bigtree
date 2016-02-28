@@ -21,5 +21,5 @@ async def wshandler(request):
 
 
 app = web.Application()
-app.router.add_route('GET', '/echo', wshandler)
-app.router.add_route('GET', '/{name}', handle)
+app.router.add_route('GET', '/ws/echo', wshandler)
+app.router.add_route('GET', '/api/{name}', handle)
