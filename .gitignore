@@ -1,0 +1,14 @@
+# private config #
+private/
+
+# python #
+env/
+*.pyc
+*.pyo
+
+# backup #
+*~
+*.swp
+
+# log #
+*.log
