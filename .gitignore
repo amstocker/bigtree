@@ -5,6 +5,7 @@ private/
 env/
 *.pyc
 *.pyo
+**/__pycache__/
 
 # backup #
 *~
