@@ -9,6 +9,12 @@ class Database:
 
     async def connect(self):
         self._pool = await aiopg.create_pool(self._dsn)
+
+    async def execute(self, cmd, *args):
+        async with self._pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(cmd, args)
+                return (await cur.fetchall())
     
     async def add_message(self, msg):
         pass
