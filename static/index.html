@@ -1,7 +1,12 @@
 <html>
+
 <body>
-bigtree
+<div id="container">
+</div>
 </body>
+
+<script src="/js/bundle.js"></script>
+
 <script type="text/javascript">
 ws = new WebSocket("wss://test.andrewstocker.net/ws/echo");
 ws.onopen = function() {
@@ -12,4 +17,5 @@ ws.onopen = function() {
   };
 };
 </script>
+
 </html>
