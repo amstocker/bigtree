@@ -6,9 +6,13 @@ import uglify from 'rollup-plugin-uglify';
 
 export default {
   entry: 'src/main.js',
-  format: 'cjs',
+  format: 'umd',
   plugins: [
     babel({
+      presets: [
+        "es2015-rollup",
+        "react"
+      ],
       exclude: 'node_modules/**'
     }),
     nodeResolve({
