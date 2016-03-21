@@ -7,15 +7,4 @@
 
 <script src="/js/bundle.js"></script>
 
-<script type="text/javascript">
-ws = new WebSocket("wss://test.andrewstocker.net/ws/echo");
-ws.onopen = function() {
-  ws.send("Hello, server.");
-  ws.onmessage = function(d) {
-    console.log(d);
-    ws.close();
-  };
-};
-</script>
-
 </html>
