@@ -3,39 +3,35 @@ from aiohttp import web
 
 from .client import Client
 from .db import Database
+from .pubsub import PubSub
 
 
-async def init(app):
-    app['db'] = Database(open('private/pg_dsn').read())
-    await app['db'].connect()
+class Server(web.Application):
 
-async def handle(request):
-    name = request.match_info.get('name', "Anonymous")
-    text = "Hello, " + name
-    return web.Response(body=text.encode('utf-8'))
+    async def init(self):
+        self.router.add_route('GET', '/ws/echo', self.websocket_handler())
 
-async def wshandler(req):
-    ws = web.WebSocketResponse()
-    await ws.prepare(req)
-    
-    client = Client(app, req, ws)
-    async for msg in ws:
-        if msg.tp == web.MsgType.text:
-            await client.handle(msg)
-        elif msg.tp == web.MsgType.close:
-            await client.close(msg)
-            break
-        else:
-            # invalid message type
-            break
+        self.database = Database(open('private/pg_dsn').read())
+        self.pubsub = PubSub('localhost', 6379)
+        
+        await self.database.connect()
+        await self.pubsub.connect()
 
-    return ws
+    def websocket_handler(self):
+        async def handler(req):
+            ws = web.WebSocketResponse()
+            await ws.prepare(req)
 
+            client = self.new_client(ws)
+            async for msg in ws:
+                if msg.tp == web.MsgType.close:
+                    await client.close(msg)
+                    break
+                else:
+                    await client.handle(msg)
 
-## INIT ##
-app = web.Application()
-app.router.add_route('GET', '/ws/echo', wshandler)
-app.router.add_route('GET', '/api/{name}', handle)
+            return ws
+        return handler
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(init(app))
+    def new_client(self, ws):
+        return Client(self, ws)
