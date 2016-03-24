@@ -25,16 +25,18 @@ class Client:
 
         if action == "subscribe":
             if chan_id in self.channels:
-                return
-            task = asyncio.ensure_future(self.pubsub_reader(chan_id))
-            self.channels[chan_id] = task
+                self.send_err("client already subscribed to this channel")
+            else:
+                task = asyncio.ensure_future(self.pubsub_reader(chan_id))
+                self.channels[chan_id] = task
         
         elif action == "message":
             if chan_id not in self.channels:
-                return
-            with (await self.app.pubsub.pool) as conn:
-                json_obj["client_id"] = self.client_id
-                await conn.publish_json(chan_id, json_obj)
+                self.send_err("client not subscribed to this channel")
+            else:
+                with (await self.app.pubsub.pool) as conn:
+                    json_obj["client_id"] = self.client_id
+                    await conn.publish_json(chan_id, json_obj)
 
 
     async def pubsub_reader(self, chan_id):
@@ -45,7 +47,11 @@ class Client:
                     self.ws.send_str(msg.decode('utf-8'))
             except asyncio.CancelledError:
                 await conn.unsubscribe(chan_id)
+            except RuntimeError:
+                return
 
+    def send_err(self, msg):
+        self.ws.send_str('{{"error":"{}"}}')
 
     async def close(self, msg):
         pass
