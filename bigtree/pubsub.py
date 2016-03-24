@@ -7,13 +7,16 @@ class PubSub:
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self.conn = None
+        self.pool = None
 
     async def connect(self):
-        self.conn = await aioredis.create_redis((self.host, self.port))
+        self.pool = await aioredis.create_pool((self.host, self.port))
 
-    async def reader(self, chan):
+    async def close(self):
         pass
 
-    async def subscribe(self, chat_id):
+    async def get_channel(self, chan_id):
+        pass
+
+    async def publish(self, chan_id, json_obj):
         pass

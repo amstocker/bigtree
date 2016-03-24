@@ -13,7 +13,10 @@ class App extends React.Component {
     // init websocket
     this.ws = new WebSocket("wss://test.andrewstocker.net/ws/echo")
     this.ws.onopen = () => {
-      this.ws.send("hello server")
+      this.ws.send('{"action":"subscribe", "chan_id":"0000"}');
+      setInterval(
+          () => this.ws.send('{"action":"message", "chan_id":"0000", "content":"poop"}'),
+          5000);
     }
     this.ws.onmessage = this.handleMessage.bind(this)
 

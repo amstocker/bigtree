@@ -20,13 +20,11 @@ class Server(web.Application):
     async def websocket_handler(self, req):
         ws = web.WebSocketResponse()
         await ws.prepare(req)
-
+        
+        # receiving from websocket must be
+        # done in this coroutine.
         client = Client(self, ws)
         async for msg in ws:
-            if msg.tp == web.MsgType.close:
-                await client.close(msg)
-                break
-            else:
-                await client.handle(msg)
+            await client.handle(msg)
 
         return ws
