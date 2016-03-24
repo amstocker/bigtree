@@ -17,6 +17,9 @@ class Database:
     async def connect(self):
         self._pool = await aiopg.create_pool(self._dsn)
 
+    async def cleanup(self):
+        pass
+
     async def execute(self, cmd, *args):
         async with self._pool.acquire() as conn:
             async with conn.cursor() as cur:

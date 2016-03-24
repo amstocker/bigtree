@@ -12,8 +12,8 @@ class PubSub:
     async def connect(self):
         self.pool = await aioredis.create_pool((self.host, self.port))
 
-    async def close(self):
-        pass
+    async def cleanup(self):
+        await self.pool.clear()
 
     async def get_channel(self, chan_id):
         pass
