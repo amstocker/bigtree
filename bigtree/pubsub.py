@@ -7,16 +7,25 @@ class PubSub:
     def __init__(self, host, port):
         self.host = host
         self.port = port
-        self.pool = None
+        self.sub = None
+        self.pub = None
 
     async def connect(self):
-        self.pool = await aioredis.create_pool((self.host, self.port))
-
+        self.sub = await aioredis.create_redis((self.host, self.port))
+        self.pub = await aioredis.create_redis((self.host, self.port))
+    
     async def cleanup(self):
-        await self.pool.clear()
+        self.sub.close()
+        self.pub.close()
+        await self.sub.wait_closed()
+        await self.pub.wait_closed()
 
     async def get_channel(self, chan_id):
-        pass
+        chan, = await self.sub.subscribe(chan_id)
+        return chan
+
+    async def close_channel(self, chan):
+        await self.sub.unsubscribe(chan.name)
 
     async def publish(self, chan_id, json_obj):
-        pass
+        await self.pub.publish_json(chan_id, json_obj)

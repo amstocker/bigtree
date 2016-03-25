@@ -10,6 +10,7 @@ class Client:
     def __init__(self, app, ws):
         self.client_id = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
         self.app = app
+        self.pubsub = app.pubsub
         self.ws = ws
         self.channels = {}
 
@@ -34,24 +35,24 @@ class Client:
             if chan_id not in self.channels:
                 self.send_err("client not subscribed to this channel")
             else:
-                with (await self.app.pubsub.pool) as conn:
-                    json_obj["client_id"] = self.client_id
-                    await conn.publish_json(chan_id, json_obj)
+                json_obj["client_id"] = self.client_id
+                await self.pubsub.publish(chan_id, json_obj)
 
 
     async def pubsub_reader(self, chan_id):
-        with (await self.app.pubsub.pool) as conn:
-            chan, = await conn.subscribe(chan_id)
-            try:
-                async for msg in chan.iter():
-                    self.ws.send_str(msg.decode('utf-8'))
-            except asyncio.CancelledError:
-                await conn.unsubscribe(chan_id)
-            except RuntimeError:
-                return
+        chan = await self.pubsub.get_channel(chan_id)
+        try:
+            async for msg in chan.iter():
+                self.ws.send_str(msg.decode('utf-8'))
+        except asyncio.CancelledError:
+            await self.pubsub.close_channel(chan)
+        except RuntimeError:
+            return
+
 
     def send_err(self, msg):
         self.ws.send_str('{{"error":"{}"}}')
+
 
     async def close(self, msg):
         pass
