@@ -1,14 +1,14 @@
 import json
-import random
-import string
 import asyncio
 from aiohttp import web
+
+from . import utils
 
 
 class Client:
   
     def __init__(self, app, ws):
-        self.client_id = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
+        self.session_id = utils.random_id()
         self.app = app
         self.pubsub = app.pubsub
         self.ws = ws
@@ -19,24 +19,24 @@ class Client:
             for task in self.channels.values():
                 task.cancel()
             return
-            
-        json_obj = json.loads(msg.data)
+        try:
+            json_obj = json.loads(msg.data)
+        except ValueError:
+            return self.send_err("invalid JSON")
         action = json_obj["action"]
         chan_id = json_obj["chan_id"]
-
+        
         if action == "subscribe":
             if chan_id in self.channels:
-                self.send_err("client already subscribed to this channel")
-            else:
-                task = asyncio.ensure_future(self.pubsub_reader(chan_id))
-                self.channels[chan_id] = task
+                return self.send_err("client already subscribed to this channel")
+            task = asyncio.ensure_future(self.pubsub_reader(chan_id))
+            self.channels[chan_id] = task
         
         elif action == "message":
             if chan_id not in self.channels:
-                self.send_err("client not subscribed to this channel")
-            else:
-                json_obj["client_id"] = self.client_id
-                await self.pubsub.publish(chan_id, json_obj)
+                return self.send_err("client not subscribed to this channel")
+            json_obj["session_id"] = self.session_id
+            await self.pubsub.publish(chan_id, json_obj)
 
 
     async def pubsub_reader(self, chan_id):
