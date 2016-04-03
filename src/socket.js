@@ -10,7 +10,7 @@ export default class {
     this.raw.onmessage = this._wrap_json_handler(handler);
     this.raw.onopen = () => {
       setInterval(
-        () => this.heartbeat({"random":"shit"}),
+        () => this.heartbeat(),
         HEARTBEAT_INTERVAL);
 
       // for testing:
@@ -29,7 +29,7 @@ export default class {
   send_message(action, content) {
     let msg = JSON.stringify({
       action,
-      content
+      content: content || {}
     });
     this.raw.send(msg);
   }
