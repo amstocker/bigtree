@@ -1,12 +1,13 @@
-import json
 import asyncio
+import json
 from aiohttp import web
+from uuid import uuid4
 
 from . import utils
 
 
 class Client:
-  
+
     def __init__(self, app, ws):
         self.session_id = utils.random_id()
         self.app = app
@@ -36,16 +37,25 @@ class Client:
             if chan_id not in self.channels:
                 return self.send_err("client not subscribed to this channel")
             json_obj["session_id"] = self.session_id
+            json_obj["content"]["id"] = str(uuid4())
             await self.pubsub.publish(chan_id, json_obj)
+        
+        # TODO: should be "heartbeat", put timer on client_id set members?
+        elif action == "getinfo":
+            if chan_id not in self.channels:
+                return self.send_err("client not subscribe to this channel")
+            json_obj["content"] = await self.pubsub.get_channel_info(chan_id)
+            self.ws.send_str(json.dumps(json_obj))
 
 
     async def pubsub_reader(self, chan_id):
-        chan = await self.pubsub.get_channel(chan_id)
+        # TODO: change this to pass in unique authenticated client ID
+        chan = await self.pubsub.get_channel(chan_id, self.session_id)
         try:
             async for msg in chan.iter():
                 self.ws.send_str(msg.decode('utf-8'))
         except asyncio.CancelledError:
-            await self.pubsub.close_channel(chan)
+            await self.pubsub.close_channel(chan, self.session_id)
         except RuntimeError:
             return
 

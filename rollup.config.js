@@ -11,6 +11,7 @@ export default {
     babel({
       presets: [
         "es2015-rollup",
+        "stage-0",
         "react"
       ],
       exclude: 'node_modules/**'
