@@ -1,51 +1,48 @@
 import React from 'react';
 import update from 'react-addons-update';
 
+import Socket from './socket';
+import Actions from './actions';
+
 
 class InfoBox extends React.Component {
-
   render() {
-    let rendered_members = this.props.info.members.map((member) => {
-      return <div>{member}</div>
+    let rendered_channels_info = this.props.info.map((channel_info) => {
+      return <div>{channel_info.channel_id + ": " + channel_info.members.join(", ")}</div>
     });
     return (
       <div>
-        Members:
-        {rendered_members}
+        Channel Info:
+        {rendered_channels_info}
       </div>
-    );
+    )
   }
-
 }
 
 
 class Message extends React.Component {
-  
   render() {
     return (
       <div>
-        <div>{this.props.session_id + ' // ' + this.props.chan_id + ' // ' + this.props.id}</div>
-        <div>{this.props.content.body}</div>
+        <div>{this.props.author + ' // ' + this.props.channel_id + ' // ' + this.props.id}</div>
+        <div>{this.props.body}</div>
       </div>
-    );
+    )
   }
-
 }
 
 
 class MessageList extends React.Component {
-  
   render() {
     let rendered_messages = this.props.messages.map((msg) => {
-      return <Message {...msg} key={msg.content.id} />
-    });
+      return <Message {...msg} key={msg.id} />
+    })
     return (
       <div>
         {rendered_messages}
       </div>
-    );
+    )
   }
-
 }
 
 
@@ -54,46 +51,28 @@ class App extends React.Component {
   state = {
     socket_status: null,
     data: {
-      info: {
-        members: []
-      },
+      info: [],
       messages: []
     }
   }
 
   constructor() {
     super();
-
-    // init websocket
-    this.socket = new WebSocket("wss://test.andrewstocker.net/ws/main")
-    this.socket.onopen = () => {
-      this.socket.send('{"action":"subscribe", "chan_id":"0000"}');
-      setInterval(
-          () => this.socket.send('{"action":"message", "chan_id":"0000", "content": {"body":"poop"}}'),
-          5000);
-      setInterval(
-          () => this.socket.send('{"action":"getinfo", "chan_id":"0000"}'),
-          1000);
-    }
-    // fancy ES7 bind syntax...
-    this.socket.onmessage = ::this.handleMessage
+    this.socket = new Socket("/main", ::this.handleMessage);
   }
 
-  handleMessage(raw) {
-    let msg = JSON.parse(raw.data);
+  handleMessage(msg) {
     switch (msg.action) {
-      case "message":
-        console.log(msg);
+      case Actions.MESSAGE:
         this.setState((state) => update(state, {
           data: {
             messages: {
-              $push: [msg]
+              $push: [msg.content]
             }
           }
         }));
         break;
-      case "getinfo":
-        console.log(msg);
+      case Actions.HEARTBEAT:
         this.setState((state) => update(state, {
           data: {
             info: {
@@ -102,8 +81,12 @@ class App extends React.Component {
           }
         }));
         break;
+      case Actions.ERROR:
+        console.error("ERROR: " + msg.content);
+        break;
       default:
-        console.error("invalid message: " + raw.data);
+        console.error("invalid message: ");
+        console.error(msg);
     }
   }
   
@@ -113,7 +96,7 @@ class App extends React.Component {
         <InfoBox info={this.state.data.info} />
         <MessageList messages={this.state.data.messages} />
       </div>
-    );
+    )
   }
 
 }

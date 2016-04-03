@@ -39,5 +39,6 @@ class PubSub:
     async def get_channel_info(self, chan_id):
         members = await self.info.smembers(chan_id)
         return {
+            "channel_id": chan_id,
             "members": members
             }
