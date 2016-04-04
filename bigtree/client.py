@@ -50,7 +50,9 @@ class Client:
         elif action == "heartbeat":
             channel_info = []
             for chan_id in self.channels.keys():
-                channel_info.append(await self.pubsub.get_channel_info(chan_id))
+                channel_info.append(
+                    await self.pubsub.update_info(chan_id, self.client_id)
+                    )
             json_obj["content"] = channel_info
             self.ws.send_str(json.dumps(json_obj))
 
@@ -70,8 +72,7 @@ class Client:
 
 
     async def pubsub_reader(self, chan_id):
-        # TODO: change this to pass in unique authenticated client ID
-        chan = await self.pubsub.get_channel(chan_id, self.client_id)
+        chan = await self.pubsub.get_channel(chan_id)
         try:
             async for msg in chan.iter():
                 self.ws.send_str(msg.decode('utf-8'))

@@ -1,8 +1,11 @@
 import asyncio
 import aioredis
+import time
 
 
 class PubSub:
+
+    HEARTBEAT_TIMEOUT = 5  # seconds
 
     def __init__(self, host, port):
         self.host = host
@@ -24,20 +27,31 @@ class PubSub:
         await self.pub.wait_closed()
         await self.info.wait_closed()
 
-    async def get_channel(self, chan_id, client_id):
-        await self.info.sadd(chan_id, client_id)
+    async def get_channel(self, chan_id):
         chan, = await self.sub.subscribe(chan_id)
         return chan
 
     async def close_channel(self, chan, client_id):
-        await self.indo.srem(chan_id, client_id)
+        await self.info.zrem(chan_id, client_id)
         await self.sub.unsubscribe(chan.name)
 
     async def publish(self, chan_id, json_obj):
         await self.pub.publish_json(chan_id, json_obj)
 
-    async def get_channel_info(self, chan_id):
-        members = await self.info.smembers(chan_id)
+    async def update_info(self, chan_id, client_id):
+        now = time.time()
+        # remove clients who have not sent a heartbeat message in some amount
+        # of seconds.
+        # TODO: this should really be done in a separate daemon but this is
+        #       okay for now...
+        expire = now - self.HEARTBEAT_TIMEOUT
+        await self.info.zremrangebyscore(chan_id, max=expire)
+        
+        # update last score with time now
+        await self.info.zadd(chan_id, now, client_id)
+        
+        # get current members
+        members = await self.info.zrange(chan_id)
         return {
             "channel_id": chan_id,
             "members": members
