@@ -6,14 +6,23 @@ from .db import Database
 from .pubsub import PubSub
 
 
+def get_config(path):
+    import json
+    with open(path) as f:
+        config = json.loads(f.read())
+    return config
+
+
 class Server(web.Application):
 
     async def init_resources(self):
         self.router.add_route('GET', '/ws/main', self.ws_main_handler)
         self.on_shutdown.append(self.cleanup_resources)
-
-        self.database = Database(open('private/pg_dsn').read())
-        self.pubsub = PubSub('localhost', 6379)
+        
+        config = get_config("private/config.json")
+        self.database = Database(config["PG_DSN"])
+        self.pubsub = PubSub(config["REDIS_HOST"],
+                             config["REDIS_PORT"])
         await self.database.connect()
         await self.pubsub.connect()
 

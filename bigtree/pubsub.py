@@ -4,7 +4,8 @@ import time
 
 
 class PubSub:
-
+    
+    CHANNELS_KEY = "all_channels"
     HEARTBEAT_TIMEOUT = 5  # seconds
 
     def __init__(self, host, port):
@@ -36,17 +37,14 @@ class PubSub:
         await self.sub.unsubscribe(chan.name)
 
     async def publish(self, chan_id, json_obj):
+        # check if channel exist (for now just make the channel but eventually
+        # need to have a channel creation procedure)
+        await self.info.sadd(self.CHANNELS_KEY, chan_id)
         await self.pub.publish_json(chan_id, json_obj)
 
     async def update_info(self, chan_id, client_id):
         now = time.time()
-        # remove clients who have not sent a heartbeat message in some amount
-        # of seconds.
-        # TODO: this should really be done in a separate daemon but this is
-        #       okay for now...
-        expire = now - self.HEARTBEAT_TIMEOUT
-        await self.info.zremrangebyscore(chan_id, max=expire)
-        
+
         # update last score with time now
         await self.info.zadd(chan_id, now, client_id)
         
